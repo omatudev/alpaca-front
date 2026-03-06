@@ -313,13 +313,30 @@ export default function BackgroundChart({
       return;
     }
 
-    // Normal periodic refresh: just shift the view window
+    // Normal periodic refresh: when new bars arrive, keep the view anchored
+    // to the right edge (so new candles appear on the right) instead of
+    // advancing the left edge and dropping the first visible candle.
     if (hasData) {
       const added = bars.length - prevN;
       if (added !== 0) {
-        const slots = stateRef.current.totalSlots;
-        setVs((v) => Math.max(0, v + added));
-        setVe((v) => Math.min(slots, v + added));
+        const slots = totalSlotsForView;
+        // current visible slot count (integer)
+        const vis = Math.max(
+          1,
+          Math.ceil(stateRef.current.ve) - Math.floor(stateRef.current.vs),
+        );
+        // Only auto-anchor when there aren't many slots, or when the user
+        // was already at the right edge. This prevents forcing an anchor when
+        // the user has scrolled back into historical data.
+        const AUTO_ANCHOR_MAX_SLOTS = 120;
+        const wasAtRightEdge =
+          Math.ceil(stateRef.current.ve) >= Math.max(0, slots - 1);
+        if (slots <= AUTO_ANCHOR_MAX_SLOTS || wasAtRightEdge) {
+          const newVe = slots;
+          const newVs = Math.max(0, newVe - vis);
+          setVs(newVs);
+          setVe(newVe);
+        }
       }
     }
 
