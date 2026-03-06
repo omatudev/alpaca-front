@@ -527,9 +527,14 @@ export default function Dashboard() {
     const elapsedMins = elapsedMs / 60_000;
     const elapsedBars = Math.ceil(elapsedMins / ivMins);
 
+    // Ensure we reserve at least half a trading session so the first candles
+    // after market open don't appear overly large. Session = 390 minutes.
+    const halfSessionBars = Math.ceil(390 / 2 / ivMins);
+    const minReserve = halfSessionBars + 6; // half-session + small buffer
+
     // Just elapsed + buffer — do NOT include bars.length so it stays stable
     // as bars arrive (avoids re-triggering a view reset each new bar).
-    return elapsedBars + 6;
+    return Math.max(elapsedBars + 6, minReserve);
   }, [range, activeInterval]);
 
   /* ─── Render ────────────────────────────────────────────────── */
