@@ -19,10 +19,6 @@ export default defineConfig({
         target: 'ws://localhost:8000',
         ws: true,
         changeOrigin: true,
-        configure(proxy) {
-          // Suppress EPIPE noise when backend is not running or closes the socket
-          proxy.on('error', () => { })
-        },
       },
     },
   },
