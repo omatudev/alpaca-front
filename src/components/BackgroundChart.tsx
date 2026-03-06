@@ -35,7 +35,7 @@ import {
 // -- Layout constants ---------------------------------------------------
 const W = 1000;
 const H = 400;
-const PAD_Y = 0.08;
+const PAD_Y = 0.12;
 const PAD_X = 20;
 const FLATTEN_IN = 200; // scaleY 1→0 (ease-in)
 const FLATTEN_OUT = 300; // scaleY 0→1 (ease-out)
@@ -366,7 +366,13 @@ export default function BackgroundChart({
       if (b.high > mx) mx = b.high;
     }
     const r = mx - mn || 1;
-    return { lo: mn - r * 0.02, range: r * 1.04 };
+    // Use a slightly larger vertical padding and center the visible range
+    // around the midpoint so extreme wicks don't dominate the visual.
+    const PAD_MULT = 1.2; // expand range by 20%
+    const expanded = r * PAD_MULT;
+    const mid = (mx + mn) / 2;
+    const loVal = mid - expanded / 2;
+    return { lo: loVal, range: expanded };
   }, [visible]);
 
   const candles = useMemo(
