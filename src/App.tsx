@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { Analytics } from "@vercel/analytics/react";
 import Dashboard from "./pages/Dashboard";
 import TestConsole from "./pages/TestConsole";
 import { useAuth } from "./hooks/useAuth";
@@ -77,6 +78,7 @@ export default function App() {
         <Route path="/test" element={<TestConsole />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      <Analytics />
     </BrowserRouter>
   );
 }
