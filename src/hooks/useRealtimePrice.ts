@@ -34,11 +34,17 @@ export function useRealtimePrice(symbols: string[]) {
   const connect = useCallback(() => {
     if (!mountedRef.current) return
 
-    const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws'
+    // Prefer explicit websocket URL from env (set at build time). Fallback to current host.
+    const envWs = (import.meta.env as any).VITE_WEBSOCKET_URL
     const token = localStorage.getItem('jwt_token')
-    const wsUrl = token
-      ? `${protocol}://${window.location.host}/ws/prices?token=${encodeURIComponent(token)}`
-      : `${protocol}://${window.location.host}/ws/prices`
+    const wsUrl = envWs
+      ? (token ? `${envWs}/ws/prices?token=${encodeURIComponent(token)}` : `${envWs}/ws/prices`)
+      : (() => {
+        const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws'
+        return token
+          ? `${protocol}://${window.location.host}/ws/prices?token=${encodeURIComponent(token)}`
+          : `${protocol}://${window.location.host}/ws/prices`
+      })()
     const ws = new WebSocket(wsUrl)
     wsRef.current = ws
 
