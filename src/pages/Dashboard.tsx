@@ -407,6 +407,75 @@ export default function Dashboard() {
         ? prevBarsRef.current.bars
         : []; // different source loading — pass empty, BackgroundChart will wait
 
+  // Normalize intraday 1d bars into strict time buckets so the chart
+  // renders one candle per interval from session open → now. Missing
+  // slots are filled with a placeholder candle (open=high=low=close)
+  // seeded from the previous available close. This matches TradingView
+  // behaviour where empty slots are reserved and candles evolve in-place.
+  const barsForRender: Bar[] = useMemo(() => {
+    if (range !== "1d") return bars;
+
+    const INTERVAL_MINS: Partial<Record<Interval, number>> = {
+      "1Min": 1,
+      "5Min": 5,
+      "15Min": 15,
+      "30Min": 30,
+    };
+    const ivMins = INTERVAL_MINS[activeInterval];
+    if (!ivMins) return bars;
+
+    // Build slot start times in ET from open → now (or close)
+    const nowET = new Date(
+      new Date().toLocaleString("en-US", { timeZone: "America/New_York" }),
+    );
+    const openET = new Date(nowET);
+    openET.setHours(9, 30, 0, 0);
+    const closeET = new Date(nowET);
+    closeET.setHours(16, 0, 0, 0);
+    const end = new Date(Math.min(nowET.getTime(), closeET.getTime()));
+
+    const slots: string[] = [];
+    for (let t = openET.getTime(); t <= end.getTime(); t += ivMins * 60_000) {
+      const iso = new Date(t).toISOString();
+      slots.push(iso);
+    }
+
+    // Map existing bars by their timestamp (assumes server returns aligned timestamps)
+    const byTs = new Map(bars.map((b) => [b.timestamp, b]));
+
+    const filled: Bar[] = [];
+    let prevClose: number | null = null;
+    // Seed prevClose with first available bar if present
+    if (bars.length > 0) prevClose = bars[0].open;
+
+    for (const s of slots) {
+      const b = byTs.get(s);
+      if (b) {
+        filled.push(b);
+        prevClose = b.close;
+      } else {
+        // placeholder
+        const val = prevClose ?? 0;
+        filled.push({
+          open: val,
+          high: val,
+          low: val,
+          close: val,
+          volume: 0,
+          timestamp: s,
+        });
+      }
+    }
+
+    // If there are bars after session end (rare), append them
+    const tail = bars.filter(
+      (b) => new Date(b.timestamp).getTime() > end.getTime(),
+    );
+    if (tail.length) filled.push(...tail);
+
+    return filled;
+  }, [range, activeInterval, bars]);
+
   /* ─── WebSocket real-time prices ────────────────────────────── */
   const wsSymbols = useMemo(
     () => (selected ? [selected.symbol] : []),
@@ -547,7 +616,7 @@ export default function Dashboard() {
       <div className="flex-1 relative overflow-hidden">
         {/* ── Full-bleed chart as background ── */}
         <BackgroundChart
-          bars={bars}
+          bars={barsForRender}
           lastPrice={lastPrice}
           dataKey={dataKey}
           onHoverPoint={setHoverPoint}
