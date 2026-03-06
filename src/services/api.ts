@@ -1,7 +1,8 @@
 import axios from 'axios'
 
+const backendUrl = import.meta.env.VITE_BACKEND_URL ?? window.location.origin
 const api = axios.create({
-  baseURL: import.meta.env.VITE_BACKEND_URL,
+  baseURL: backendUrl,
   timeout: 15_000,
   headers: { 'Content-Type': 'application/json' },
 })

@@ -87,7 +87,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const handleCredentialResponse = useCallback(
     async (response: { credential: string }) => {
       try {
-        const backendUrl = import.meta.env.VITE_BACKEND_URL;
+        const backendUrl =
+          import.meta.env.VITE_BACKEND_URL ?? window.location.origin;
         const res = await fetch(`${backendUrl}/api/auth/google`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
